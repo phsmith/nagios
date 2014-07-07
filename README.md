@@ -1,4 +1,4 @@
-check_mk
+Check_MK Checks and Plugins
 ========
 
 **Custom checks and plugins for Check_MK**
