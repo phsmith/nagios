@@ -1,7 +1,8 @@
 check_mk
 ========
 
-Custom checks and plugins for Check_MK
+*Custom checks and plugins for Check_MK*
+---------------------------------------------------------------------------------------------------------------------------------------------
 
 The checks directory contains the check_mk checks that must be put on your check_mk installation checks directory.
 
