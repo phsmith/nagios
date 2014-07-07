@@ -11,9 +11,9 @@ def perfometer_check_mk_gearman_server(row, check_command, perf_data):
         elif '_waiting' in perf[0]:
             jobs_waiting += int(perf[1])
 
-    text = "%d   %d" % (workers_running, jobs_waiting)
+    text = "%d &nbsp;&nbsp;&nbsp; %d" % (workers_running, jobs_waiting)
 
     return text, perfometer_logarithmic_dual(
-            workers_running, "#60e0a0", jobs_waiting, "#60a0e0", 5000, 10)
+            workers_running, "#60e0a0", jobs_waiting, "#60a0e0", 5000, 5)
 
 perfometers["check_mk-gearman_server"] = perfometer_check_mk_gearman_server
