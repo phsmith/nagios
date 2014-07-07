@@ -1,0 +1,11 @@
+#!/bin/bash
+# 
+# Description: Check_mk plugin that sends the hostnames and ipaddresses 
+#             configured on /etc/hosts to be checked with a dns server
+# Author: Phillipe Smith <phillipelnx@gmail.com>
+#
+
+# if runing on solaris, change "awk" with "/usr/xpg4/bin/awk"
+
+echo "<<<hosts_file>>>"
+awk '/^[^#]/ { if (! /::/) print $1" - "$2}' /etc/hosts
