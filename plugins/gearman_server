@@ -1,0 +1,8 @@
+#!/bin/bash
+#
+# Description: Wrapper plugin for check_gearman to Check_MK
+# Author: Phillipe Smith <phillipe.chaves@camara.leg.br>
+#
+
+echo '<<<gearman_server>>>'
+/usr/bin/gearman_top -b | /bin/sed -r '1,4d; $d; s/\| +/ /g'
