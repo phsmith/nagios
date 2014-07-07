@@ -10,3 +10,5 @@ The plugins directory contains the check_mk agent plugins that must be put on th
 The docs directory contains the checks manuals that must be put on your check_mk installation doc directory.
 
 The perfometer directory contains the multisite perfometers that must be put on your check_mk multisite installation perfometer directory.
+
+The packages directory contains the check_mk .mkp packages.
