@@ -1,0 +1,73 @@
+#!/usr/bin/python
+# -*- encoding: utf-8; py-indent-offset: 4 -*-
+#
+# Author: Phillipe Smith <phillipe.chaves@camara.gov.br>
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+# default temperature levels
+hp_comware_temp_default_levels = (50.0, 60.0)
+# show longoutput (default: True)
+hp_comware_temp_longoutput = True
+
+def inventory_hp_comware_temp(info):
+    inventory = []
+    for item, value in info:
+        if value is not '':
+            inventory.append((None, "hp_comware_temp_default_levels"))
+    return inventory
+
+def check_hp_comware_temp(item, params, info):
+    status     = 0 
+    totaltemp  = 0
+    slot       = 0
+    slotinfo   = [] 
+    warn, crit = params
+
+    for item, value in info:
+        if item is not '' and int(value) != 65535:
+            temp = savefloat(value)
+            totaltemp += temp
+            slot += 1            
+            slotinfo.append('%s temp: %sC' % (item, temp))
+
+    if slot == 0:
+        return (3, "UNKNOWN - no data found in SNMP output")
+
+    tempavg  = savefloat(totaltemp / slot)
+    perfdata = [("temperature", tempavg, warn, crit)]
+    infotext = "%2.1fC at %d Slots" % (tempavg, slot)
+    
+    if tempavg >= crit:
+        status = 2
+        infotext += " (critical at %d%%)" % crit
+    elif tempavg >= warn:
+        status = 1
+        infotext += " (warning at %d%%)" % warn
+
+    if hp_comware_temp_longoutput:
+        infotext += "\\n%s" % '\\n'.join(slotinfo)
+
+    return (status, infotext, perfdata)
+
+check_info["hp_comware_temp"] = {
+    "check_function"        : check_hp_comware_temp,
+    "inventory_function"    : inventory_hp_comware_temp,
+    "service_description"   : "Temperature",
+    "has_perfdata"          : True,
+    "group"                 : "temperature",
+    "snmp_scan_function"    : lambda oid: "h3c comware" in oid(".1.3.6.1.2.1.1.1.0").lower() \
+                                         or "hp comware" in oid(".1.3.6.1.2.1.1.1.0").lower(),
+    "snmp_info"             : ( ".1.3.6.1", ["2.1.47.1.1.1.1.7", "4.1.25506.2.6.1.1.1.1.12"] ),
+}

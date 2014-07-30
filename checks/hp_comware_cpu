@@ -1,0 +1,75 @@
+#!/usr/bin/python
+# -*- encoding: utf-8; py-indent-offset: 4 -*-
+#
+# Author: Phillipe Smith <phillipe.chaves@camara.gov.br>
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+
+hp_comware_cpu_default_levels = (30.0, 40.0)
+hp_comware_cpu_longoutput = True
+
+def inventory_hp_comware_cpu(info):
+    inventory = []
+    for value in info:
+        if value[0] != '0':
+            inventory.append((None, 'hp_comware_cpu_default_levels')) 
+    return inventory
+
+def check_hp_comware_cpu(item, params, info):
+    total_usage = 0
+    cpus_num    = 0
+    boardinfo   = ''
+    perfdata    = []
+    status      = 0
+    warn,crit   = params
+
+    for value in info:
+        if value[0] != '0':
+            cpus_num += 1 
+            cpu_usage = savefloat(value[0])
+            total_usage += cpu_usage
+            board = 'board%d' % cpus_num
+            boardinfo += '%s cpu usage: %2.1f%%\\n' % (board.capitalize(), cpu_usage)
+            perfdata.append((board, cpu_usage, warn, crit, 0, 100, ';;'))
+    
+    if cpus_num == 0:
+        return (3, "UNKNOWN - no data found in SNMP output")
+
+    avg_usage = savefloat(total_usage / cpus_num)
+    perfdata.insert(0,("usage", avg_usage, warn, crit, 0, 100))
+    infotext = "%2.1f%% average utilization at %d Boards" % (avg_usage, cpus_num)
+
+    if avg_usage >= crit:
+        status = 2
+        infotext = "%s (critical at %d%%)" % (infotext, crit)
+    elif avg_usage >= warn:
+        status = 1
+        infotext = "%s (warning at %d%%)" % (infotext, warn)
+    
+    if hp_comware_cpu_longoutput:
+        return (status, '%s\\n%s' % (infotext, boardinfo), perfdata)
+    else:
+        return (status, infotext, perfdata)
+
+check_info["hp_comware_cpu"] = {
+    "check_function"        : check_hp_comware_cpu,
+    "inventory_function"    : inventory_hp_comware_cpu,
+    "service_description"   : "CPU utilization",
+    "has_perfdata"          : True,
+    "group"                 : "cpu_utilization",
+    "snmp_scan_function"    : lambda oid: "h3c comware" in oid(".1.3.6.1.2.1.1.1.0").lower() \
+                                          or "hp comware" in oid(".1.3.6.1.2.1.1.1.0").lower(),
+    "snmp_info"             : ( ".1.3.6.1.4.1.25506.2.6.1.1.1.1", ["6"] ),
+}
