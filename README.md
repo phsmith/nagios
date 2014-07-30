@@ -13,3 +13,4 @@ Check_MK Checks and Plugins
 - The perfometer directory contains the multisite perfometers that must be put on your check_mk multisite installation perfometer directory.
 
 - The packages directory contains the check_mk .mkp packages.
+
