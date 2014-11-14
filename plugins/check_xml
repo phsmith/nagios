@@ -26,6 +26,7 @@
 #
 # Command line usage example:
 #   ./check_xml -u 'http://adobe_flash_media_server:1111/admin/getServerStats?auser=admin&apswd=admin' -n 'data/io/connected,total_connects,total_disconnects' -l 'connected:80:100'
+#   ./check_xml -f teste-file.xml -n './status,timestamp:./Users/connected:./Users/user/name,email' -l 'connected:80:100'
 #
 # Nagios configuration example:
 #   define command {
