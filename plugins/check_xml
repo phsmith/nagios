@@ -52,27 +52,20 @@ parser = OptionParser()
 parser.add_option('-u', '--url', dest='url', default=False, help='XML Document URL')
 parser.add_option('-f', '--file', dest='file', default=False, help='XML Document File')
 parser.add_option('-l', '--levels', dest='levels', default='', help='Thresholds based on the node name\nThe format must be like: "node_name:warn:crit". Ex.: "users_connected:80:100,total_users:100:150"')
-parser.add_option('-n', '--node', dest='node', default=False, help='Retrive node(s) value(s) from given XPath format, plus conma separate child nodes \nEx.: /Users/user/name,email,address')
+parser.add_option('-n', '--childnode', dest='childNode', default=False, help='Retrive childNode(s) value(s) from given XPath format,\n plus conma separated child nodes \nEx.: /Users/user/name,email,address')
 parser.add_option('-p', '--perfdata', dest='perfdata', action='store_true', help='Generate perfdata')
 options, args = parser.parse_args()
 
 # Variables definitions
 result   = []
 info     = '' 
-textinfo = ''
-url      = options.url
-file     = options.file
-node     = options.node 
-levels   = options.levels.strip().split(',')
-perf     = options.perfdata
-perfdata = []
-
-# Error if not specified a xml url or file
-# or if not specified the -n option with a Xpath based search
-#if not url or not file or not node:
-#    print 'UNKNOWN - No XML URL/File or no Xpath search passed.\n'
-#    print parser.print_help()
-#    sys.exit(3)
+textinfo  = ''
+url       = options.url
+file      = options.file
+childNode = options.childNode 
+levels    = options.levels.strip().split(',')
+perf      = options.perfdata
+perfdata  = []
 
 # Try import python xml module
 try:
@@ -103,41 +96,41 @@ else:
 
 # Variable that will receive the XML content
 xmltree = elt.ElementTree(file=xml)
+output = []
 
 # Defining the XML nodes parents and childs
 # based on the search made
-if node:
-    if '/' in node:
-        parent = '/'.join(node.split('/')[:-1]) + '/'
-        child  = node.split('/')[-1].split(',')
-    else:
-        parent = ''
-        child  = node.split(',')
+if childNode:
+    for node in childNode.split(':'):
+        if '/' in node:
+            parent = '/'.join(node.split('/')[:-1]) + '/'
+            child  = node.split('/')[-1].split(',')
+        else:
+            parent = './'
+            child  = node.split(',')
+
+        # Loop through child nodes to define the service
+        for value in child:
+            node = parent + value.strip()
+            if xmltree.findall(node):
+                node = xmltree.findall(node)[0]
+                textinfo = '%s: %s' % (node.tag, node.text)
+                if levels and levels[0] != '':
+                    for level in [ x.split(':') for x in levels if node.tag in x ]:
+                        if float(node.text) > float(level[2]):
+                            textinfo = '%s: %s (crit)' % (node.tag, node.text)
+                        elif float(node.text) > float(level[1]):
+                            textinfo = '%s: %s (warn)' % (node.tag, node.text)
+                        perfdata.append('%s=%s;%s;%s;' % (node.tag, node.text, level[1], level[2]))
+                else:
+                    if not node.text.isalpha():
+                        perfdata.append('%s=%s;' % (node.tag, node.text))
+                result.append(textinfo)
 else:
     print 'UNKNOWN - No XML URL/File or no Xpath search passed.\n'
     parser.print_help()
     sys.exit(3)
 
-# Loop through child nodes to define the service
-for value in child:
-    node = parent + value.strip()
-    if xmltree.findall(node):
-        node = xmltree.findall(node)[0]
-        textinfo = '%s: %s' % (node.tag, node.text)
-        if levels and levels[0] != '':
-            for level in [ x.split(':') for x in levels if node.tag in x ]:
-                if float(node.text) > float(level[2]):
-                    textinfo = '%s: %s (crit)' % (node.tag, node.text)
-                elif float(node.text) > float(level[1]):
-                    textinfo = '%s: %s (warn)' % (node.tag, node.text)
-                perfdata.append('%s=%s;%s;%s;' % (node.tag, node.text, level[1], level[2]))
-        else:
-            if not node.text.isalpha():
-                perfdata.append('%s=%s;' % (node.tag, node.text))
-        result.append(textinfo)
-    else:
-        print 'UNKNOWN - No information found.'
-        sys.exit(3)
 
 # Service state definition
 for info in result:
