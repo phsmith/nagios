@@ -1,0 +1,120 @@
+#!/usr/bin/perl -w
+#
+# Program: check_xtream
+# Version: 1.0
+# Date   : May 07, 2015
+# Author : Phillipe Smith <phillipelnx@gmail.com>
+# License: GPL (summary below and full text at http://www.fsf.org/licenses/gpl.txt)
+#   This program is free software; you can redistribute it and/or modify
+#   it under the terms of the GNU General Public License as published by
+#   the Free Software Foundation; either version 2 of the License, or
+#   (at your option) any later version.
+#
+#   This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#   GNU General Public License for more details.
+#
+#   You should have received a copy of the GNU General Public License
+#   along with this program; if not, write to the Free Software
+#   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+#
+#
+# Description: 
+#     This check uses msdl <http://msdl.sourceforge.net/> to dump a videostream, 
+#     check the size of it and determine if the streaming service is working or not.
+#     The plugin was developed based on Mmorten Bekkelund implementation <http://www.sladder.org/?p=236>
+#
+# Command line usage example:
+#    check_xstream -u mms://streamserver/stream -d /tmp/dump -t 10
+#
+# Nagios configuration example:
+#   define command {
+#       command_name    check_xtream
+#       command_line    $USER1$/check_xtream -u "$ARG1$" -t $ARG2$
+#   }
+#
+#   define service {
+#       use                    generic_service 
+#       host_name              HOST_1
+#       service_description    MMS Stream MyStreamServer1 
+#       check_command          check_xtream!mms://streamserver/stream!10
+#   }
+#   
+# 
+
+use strict;
+use Getopt::Long;
+use File::stat;
+use File::Which;
+
+my %status = (
+    'ok'        => 0,
+    'warning'   => 1,
+    'critical'  => 2,
+    'unknown'   => 3,
+    'dependent' => 4
+);
+
+sub help {
+    print "Usage: check_xstream -u [url] -d [destfile] -t [seconds] -s [expected_size]\n\n";
+    print "Example:\n    ./check_xstream -u mms://streamserver/stream -d /tmp/dump -t 10\n";
+    exit $status{"UNKNOWN"};
+}
+
+my $expected_size = undef;
+my $url           = undef;
+my $dump          = '/tmp/stream';
+my $timeout       = 10;
+my $critical      = 0;
+
+Getopt::Long::Configure ("bundling");
+GetOptions(
+    'u:s' => \$url,           'url'           => \$url,
+    'd:s' => \$dump,          'dump'          => \$dump,
+    't:i' => \$timeout,       'timeout'       => \$timeout,
+    's:i' => \$expected_size, 'expected_size' => \$expected_size
+);
+
+if (!which('msdl')) {
+    print 'ERROR: msdl is not installed. Check the project page: http://msdl.sourceforge.net/';
+    exit $status{'unknown'};
+}
+
+if(!$url) {
+    help();
+}
+
+unlink($dump);
+my $check_stream = `/usr/bin/msdl -q "$url" -o "$dump" --stream-timeout $timeout 2>&1`;
+
+if($? != 0) {
+    print "UNKNOWN: Cannot execute msdl command to dump the stream. Check if the url is correct.\n";
+    exit $status{'unknown'};
+}
+
+my $file_size = stat("$dump")->size;
+unlink($dump);
+
+if(!$file_size) {
+    print "UNKNOWN: Cannot find dumped stream\n";
+    exit $status{'unknown'};
+}
+
+if ($expected_size) {
+    if($file_size >= $expected_size) {
+        print "OK: The size of the stream: ${file_size}b is greater or equal than the expected_size: $expected_size. Streaming appears to work correctly\n";
+        exit $status{'ok'};
+    } else {
+        print "CRITICAL: The size of the stream: ${file_size} differ from expected_size: ${expected_size}b. Streaming doesnt appear to work correctly\n";
+        exit $status{'critical'};
+    }
+}
+
+if($file_size != $critical) {
+    print "OK: The size of the stream is ${file_size}b. Streaming appears to work correctly\n";
+    exit $status{'ok'};
+} else {
+    print "CRITICAL: The size of the stream is lower then ${critical}b. Streaming doesnt appear to work correctly\n";
+    exit $status{'critical'};
+}
