@@ -4,7 +4,7 @@
 # Author:  Phillipe Smith <phillipelnx@gmail.com>
 # Date:    08/07/2014
 # License: GPL
-# Version: 1.2
+# Version: 1.3
 #
 # The checks verifies a JSON url result and generates a Nagios compatible service with the results
 #
@@ -16,7 +16,7 @@
 #
 # Example of output gerenerated:
 #     $./check_json.py -u http://date.jsontest.com/
-#      JSON Status API OK - date: 07-12-2014, milliseconds_since_epoch: 1405126483908, time: 12:54:43 AM
+#     OK - date: 09-13-2018, milliseconds_since_epoch: 1536860376248, time: 05:39:36 PM | date=09-13-2018; milliseconds_since_epoch=1536860376248; time=05:39:36 PM;
 #
 
 import json
